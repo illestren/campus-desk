@@ -1,0 +1,377 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 1.0.0
+  description: CampusDesk AI synthetic university service desk
+servers:
+  - url: /api
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /session:
+    get:
+      operationId: getSession
+      responses:
+        "200":
+          description: Current synthetic demo identity and onboarding
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DemoSession" }
+    post:
+      operationId: switchPersona
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PersonaInput" }
+      responses:
+        "200":
+          description: Switched synthetic persona
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DemoSession" }
+  /conversations:
+    get:
+      operationId: listConversations
+      responses:
+        "200":
+          description: Session conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Conversation" }
+    post:
+      operationId: createConversation
+      responses:
+        "201":
+          description: New conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+  /conversations/{id}/messages:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: listMessages
+      responses:
+        "200":
+          description: Conversation messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+    post:
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "200":
+          description: Grounded agent response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /policies:
+    get:
+      operationId: listPolicies
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Fictional policy corpus
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Policy" }
+  /tickets:
+    get:
+      operationId: listTickets
+      responses:
+        "200":
+          description: Current session tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Ticket" }
+    post:
+      operationId: draftTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TicketInput" }
+      responses:
+        "201":
+          description: Draft awaiting human approval
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+  /tickets/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: editTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TicketInput" }
+      responses:
+        "200":
+          description: Updated draft with new approval hash
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+  /tickets/{id}/approve:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: approveTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApprovalInput" }
+      responses:
+        "200":
+          description: Idempotent mock submission
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+  /feedback:
+    post:
+      operationId: submitFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeedbackInput" }
+      responses:
+        "200":
+          description: Recorded feedback
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /analytics:
+    get:
+      operationId: getAnalytics
+      responses:
+        "200":
+          description: Actual session metrics and traces
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Analytics" }
+  /evaluations:
+    get:
+      operationId: getEvaluations
+      responses:
+        "200":
+          description: Most recent measured retrieval evaluation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Evaluation" }
+    post:
+      operationId: runEvaluation
+      responses:
+        "200":
+          description: Run deterministic retrieval and guardrail checks
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Evaluation" }
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    PersonaInput:
+      type: object
+      required: [persona]
+      properties:
+        persona: { type: string, enum: [alex, jordan] }
+    ChecklistItem:
+      type: object
+      required: [id, title, complete, description]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        complete: { type: boolean }
+        description: { type: string }
+    DemoSession:
+      type: object
+      required: [name, persona, role, department, initials, checklist, aiAvailable, disclaimer]
+      properties:
+        name: { type: string }
+        persona: { type: string }
+        role: { type: string }
+        department: { type: string }
+        initials: { type: string }
+        checklist:
+          type: array
+          items: { $ref: "#/components/schemas/ChecklistItem" }
+        aiAvailable: { type: boolean }
+        disclaimer: { type: string }
+    Conversation:
+      type: object
+      required: [id, title, createdAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        createdAt: { type: string }
+    Citation:
+      type: object
+      required: [id, title, section, content, score]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        section: { type: string }
+        content: { type: string }
+        score: { type: number }
+    AgentStep:
+      type: object
+      required: [name, detail, durationMs]
+      properties:
+        name: { type: string }
+        detail: { type: string }
+        durationMs: { type: number }
+    Message:
+      type: object
+      required: [id, conversationId, role, content, createdAt, citations, steps, latencyMs, model, abstained]
+      properties:
+        id: { type: string }
+        conversationId: { type: string }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        createdAt: { type: string }
+        citations:
+          type: array
+          items: { $ref: "#/components/schemas/Citation" }
+        steps:
+          type: array
+          items: { $ref: "#/components/schemas/AgentStep" }
+        latencyMs: { type: number }
+        model: { type: string }
+        abstained: { type: boolean }
+        ticketId: { type: ["string", "null"] }
+        feedback: { type: ["string", "null"] }
+    MessageInput:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1, maxLength: 4000 }
+        retrievalMode: { type: string, enum: [hybrid, vector] }
+    Policy:
+      type: object
+      required: [id, title, category, section, content, updatedAt, readMinutes]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        category: { type: string }
+        section: { type: string }
+        content: { type: string }
+        updatedAt: { type: string }
+        readMinutes: { type: integer }
+    TicketInput:
+      type: object
+      required: [title, description, category, priority]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 160 }
+        description: { type: string, minLength: 10, maxLength: 4000 }
+        category: { type: string, enum: [LMS Access, IT Support, Onboarding, HR] }
+        priority: { type: string, enum: [Low, Normal, High] }
+    ApprovalInput:
+      type: object
+      required: [approvalHash]
+      properties:
+        approvalHash: { type: string }
+        simulateFailure: { type: boolean }
+    Ticket:
+      type: object
+      required: [id, number, title, description, category, priority, status, requester, approvalHash, createdAt, events]
+      properties:
+        id: { type: string }
+        number: { type: string }
+        title: { type: string }
+        description: { type: string }
+        category: { type: string }
+        priority: { type: string }
+        status: { type: string, enum: [draft, submitted] }
+        requester: { type: string }
+        approvalHash: { type: string }
+        createdAt: { type: string }
+        events:
+          type: array
+          items: { type: string }
+    FeedbackInput:
+      type: object
+      required: [messageId, rating]
+      properties:
+        messageId: { type: string }
+        rating: { type: string, enum: [helpful, unhelpful] }
+    Trace:
+      type: object
+      required: [id, action, detail, createdAt, latencyMs, tokens]
+      properties:
+        id: { type: string }
+        action: { type: string }
+        detail: { type: string }
+        createdAt: { type: string }
+        latencyMs: { type: number }
+        tokens: { type: integer }
+    Analytics:
+      type: object
+      required: [conversations, answers, submittedTickets, pendingTickets, averageLatencyMs, totalTokens, helpfulCount, unhelpfulCount, abstentions, traces]
+      properties:
+        conversations: { type: integer }
+        answers: { type: integer }
+        submittedTickets: { type: integer }
+        pendingTickets: { type: integer }
+        averageLatencyMs: { type: number }
+        totalTokens: { type: integer }
+        helpfulCount: { type: integer }
+        unhelpfulCount: { type: integer }
+        abstentions: { type: integer }
+        traces:
+          type: array
+          items: { $ref: "#/components/schemas/Trace" }
+    EvaluationCase:
+      type: object
+      required: [question, expectedPolicy, vectorHit, hybridHit, category, passed]
+      properties:
+        question: { type: string }
+        expectedPolicy: { type: string }
+        vectorHit: { type: boolean }
+        hybridHit: { type: boolean }
+        category: { type: string }
+        passed: { type: boolean }
+    Evaluation:
+      type: object
+      required: [hasRun, runAt, totalCases, vectorRecall, hybridRecall, safetyPassed, safetyTotal, durationMs, embeddingStrategy, cases]
+      properties:
+        hasRun: { type: boolean }
+        runAt: { type: ["string", "null"] }
+        totalCases: { type: integer }
+        vectorRecall: { type: number }
+        hybridRecall: { type: number }
+        safetyPassed: { type: integer }
+        safetyTotal: { type: integer }
+        durationMs: { type: number }
+        embeddingStrategy: { type: string }
+        cases:
+          type: array
+          items: { $ref: "#/components/schemas/EvaluationCase" }
